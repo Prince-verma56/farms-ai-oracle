@@ -11,6 +11,7 @@ export default defineSchema({
     role: v.optional(v.union(v.literal("farmer"), v.literal("buyer"))),
     hasOnboarded: v.boolean(),
     imageUrl: v.optional(v.string()),
+    phone: v.optional(v.string()),
   }).index("by_clerkId", ["clerkId"]),
 
   // --- PRODUCT MODULE: LISTINGS (The Farmer's Crop) ---
@@ -52,6 +53,14 @@ export default defineSchema({
       v.literal("delivered"),
       v.literal("cancelled")
     ),
+    deliveryAddress: v.optional(v.object({
+      street: v.string(),
+      city: v.string(),
+      state: v.string(),
+      pincode: v.string(),
+    })),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
   })
   .index("by_buyer", ["buyerId"])
   .index("by_farmer", ["farmerId"]),

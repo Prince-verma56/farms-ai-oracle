@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Check, ChevronsUpDown, Search, Filter } from "lucide-react";
 import type { StatCard } from "@/config/stats.config";
+import { getCropImage } from "@/lib/asset-mapping";
 import { cn } from "@/lib/utils";
 import { MANDI_MARKET_OPTIONS, MANDI_STATE_OPTIONS } from "@/lib/agmarknet";
 import { Button } from "@/components/ui/button";
@@ -29,10 +30,17 @@ type MarketplacePayload = {
 };
 
 const initialFilters = {
-  commodity: "Wheat",
-  state: "Rajasthan",
-  city: "Jaipur",
+  commodity: "All",
+  state: "All",
+  city: "All",
 };
+
+const COMMODITIES = [
+  "All", "Wheat", "Mustard", "Rice", "Paddy", "Cotton", "Soybean", "Onion", 
+  "Tomato", "Potato", "Maize", "Bajra", "Jowar", "Sugarcane", 
+  "Groundnut", "Gram", "Tur", "Moong", "Urad", "Sunflower", 
+  "Sesame", "Copra", "Jute", "Apple", "Banana"
+];
 
 type ComboboxFieldProps = {
   label: string;
@@ -40,9 +48,11 @@ type ComboboxFieldProps = {
   options: string[];
   onSelect: (value: string) => void;
   icon?: React.ReactNode;
+  renderOption?: (option: string) => React.ReactNode;
+  renderValue?: (value: string) => React.ReactNode;
 };
 
-function ComboboxField({ label, value, options, onSelect, icon }: ComboboxFieldProps) {
+function ComboboxField({ label, value, options, onSelect, icon, renderOption, renderValue }: ComboboxFieldProps) {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -53,8 +63,8 @@ function ComboboxField({ label, value, options, onSelect, icon }: ComboboxFieldP
       </Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" role="combobox" className="w-full justify-between border-emerald-900/10 bg-white/50 backdrop-blur-sm hover:bg-white hover:border-emerald-900/20 transition-all rounded-xl h-12">
-            <span className="truncate">{value || `Select ${label}`}</span>
+          <Button variant="outline" role="combobox" className="w-full justify-between border-emerald-900/10 bg-white/50 backdrop-blur-sm hover:bg-white hover:border-emerald-900/20 transition-all rounded-xl h-12 overflow-hidden">
+            <span className="truncate">{value ? (renderValue ? renderValue(value) : value) : `Select ${label}`}</span>
             <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -74,7 +84,7 @@ function ComboboxField({ label, value, options, onSelect, icon }: ComboboxFieldP
                     }}
                   >
                     <Check className={cn("mr-2 size-4", value === option ? "opacity-100" : "opacity-0")} />
-                    {option}
+                    {renderOption ? renderOption(option) : option}
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -92,7 +102,10 @@ export default function MarketplacePage() {
   const [error, setError] = React.useState<string | null>(null);
   const [payload, setPayload] = React.useState<MarketplacePayload | null>(null);
 
-  const cityOptions = React.useMemo(() => MANDI_MARKET_OPTIONS[filters.state] ?? [], [filters.state]);
+  const cityOptions = React.useMemo(() => {
+    if (filters.state === "All") return ["All"];
+    return ["All", ...(MANDI_MARKET_OPTIONS[filters.state] ?? [])];
+  }, [filters.state]);
 
   const load = React.useCallback(async (currentFilters: typeof filters) => {
     setLoading(true);
@@ -137,8 +150,8 @@ export default function MarketplacePage() {
         id: "live-mandi",
         title: "Live Mandi Context",
         value: `₹${payload.modalPricePerQuintal.toLocaleString("en-IN")}/quintal`,
-        delta: payload.marketSource === "live" ? "Live" : "Fallback",
-        trend: payload.marketSource === "live" ? "up" : "neutral",
+        delta: payload.commodity === "All" ? "Global" : payload.marketSource === "live" ? "Live" : "Fallback",
+        trend: payload.commodity === "All" ? "neutral" : payload.marketSource === "live" ? "up" : "neutral",
         subtitle: `${payload.city}, ${payload.state}`,
         livePulse: payload.marketSource === "live",
         asOfLabel: `As of ${payload.anchorDateLabel}`,
@@ -181,26 +194,39 @@ export default function MarketplacePage() {
               load(filters).catch(() => null);
             }}
           >
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-emerald-900/50 flex items-center gap-1.5">
-                <Search className="size-3.5" />
-                Commodity
-              </Label>
-              <Input
-                id="commodity"
-                value={filters.commodity}
-                onChange={(e) => setFilters((prev) => ({ ...prev, commodity: e.target.value }))}
-                className="border-emerald-900/10 bg-white/50 backdrop-blur-sm focus-visible:ring-emerald-500 rounded-xl h-12"
-                placeholder="e.g. Wheat"
-              />
-            </div>
+            <ComboboxField
+              label="Commodity"
+              value={filters.commodity}
+              options={COMMODITIES}
+              icon={<Search className="size-3.5" />}
+              onSelect={(commodity) => setFilters((prev) => ({ ...prev, commodity }))}
+              renderOption={(opt) => (
+                <div className="flex items-center gap-2 w-full">
+                  <div className="size-6 shrink-0 rounded overflow-hidden flex items-center justify-center bg-zinc-100">
+                    {opt === "All" ? <Search className="size-3 text-zinc-400" /> : <img src={getCropImage(opt)} className="w-full h-full object-cover" alt={opt} />}
+                  </div>
+                  <span className={opt === "All" ? "font-bold text-zinc-900" : ""}>{opt}</span>
+                </div>
+              )}
+              renderValue={(val) => (
+                <div className="flex items-center gap-2">
+                  <div className="size-5 shrink-0 rounded overflow-hidden flex items-center justify-center bg-zinc-100">
+                    {val === "All" ? <Search className="size-2.5 text-zinc-400" /> : <img src={getCropImage(val)} className="w-full h-full object-cover" alt={val} />}
+                  </div>
+                  <span className="truncate">{val}</span>
+                </div>
+              )}
+            />
 
             <ComboboxField
               label="State"
               value={filters.state}
-              options={[...MANDI_STATE_OPTIONS]}
+              options={["All", ...MANDI_STATE_OPTIONS]}
               onSelect={(state) => {
-                const nextCity = (MANDI_MARKET_OPTIONS[state] ?? [""])[0] || "";
+                let nextCity = "All";
+                if (state !== "All") {
+                  nextCity = (MANDI_MARKET_OPTIONS[state] ?? ["All"])[0] || "All";
+                }
                 setFilters((prev) => ({ ...prev, state, city: nextCity }));
               }}
               icon={<Filter className="size-3.5" />}

@@ -8,7 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { DashboardSkeleton } from "@/components/sidebar/dashboard-skeleton";
 import { motion } from "framer-motion";
-import { Package, Calendar, User, IndianRupee, CheckCircle2, Clock } from "lucide-react";
+import { Package, Calendar, User, IndianRupee, CheckCircle2, Clock, Truck } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { useMutation } from "convex/react";
 import { ClientAnimationWrapper } from "@/components/ui/preloader/ClientAnimationWrapper";
 import { cn } from "@/lib/utils";
 
@@ -19,16 +28,22 @@ export default function SalesTrackingPage() {
     isLoaded && user?.id ? { clerkId: user.id } : "skip"
   );
 
-  const orders = useQuery(api.crud.list, 
-    { table: "orders" }
+  const sales = useQuery(api.orders.getFarmerOrders, 
+    isLoaded && user?.id ? { clerkId: user.id } : "skip"
   );
 
-  const sales = React.useMemo(() => {
-    if (!orders || !convexUser?.id) return [];
-    return orders.filter((o: any) => o.farmerId === convexUser.id);
-  }, [orders, convexUser]);
+  const updateStatus = useMutation(api.orders.updateOrderStatus);
 
-  if (!isLoaded || orders === undefined) {
+  const handleStatusChange = async (orderId: any, newStatus: any) => {
+    try {
+      await updateStatus({ orderId, orderStatus: newStatus });
+      toast.success(`Order marked as ${newStatus}`);
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  };
+
+  if (!isLoaded || sales === undefined) {
     return <DashboardSkeleton />;
   }
 
@@ -62,14 +77,14 @@ export default function SalesTrackingPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Order #{order._id.slice(-6)}</span>
-                          <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-tighter h-5">
+                          <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-tighter h-5 bg-blue-50 text-blue-700 border-blue-100">
                             {order.orderStatus}
                           </Badge>
                         </div>
                         <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
                           Direct Sale
                           <span className="text-zinc-300 font-normal">/</span>
-                          <span className="text-primary">Wheat</span>
+                          <span className="text-emerald-600">{order.cropName}</span>
                         </h3>
                       </div>
                     </div>
@@ -98,7 +113,22 @@ export default function SalesTrackingPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      <Select 
+                        defaultValue={order.orderStatus} 
+                        onValueChange={(val) => handleStatusChange(order._id, val)}
+                      >
+                        <SelectTrigger className="w-[140px] h-9 rounded-xl text-xs font-bold border-zinc-200">
+                          <SelectValue placeholder="Update Status" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="placed">Placed</SelectItem>
+                          <SelectItem value="shipped">Shipped</SelectItem>
+                          <SelectItem value="delivered">Delivered</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+
                       {order.paymentStatus === "paid" ? (
                         <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full text-xs font-bold">
                           <CheckCircle2 className="size-3.5" />
@@ -118,10 +148,10 @@ export default function SalesTrackingPage() {
           ))}
 
           {sales.length === 0 && (
-            <div className="py-20 text-center bg-zinc-50 rounded-[2rem] border border-dashed border-zinc-200">
-              <Package className="size-12 mx-auto text-zinc-300 mb-4" />
-              <h3 className="text-lg font-bold text-zinc-900">No sales yet</h3>
-              <p className="text-zinc-500">When buyers purchase your crops, they will appear here.</p>
+            <div className="py-20 text-center bg-emerald-50/50 rounded-[2rem] border border-dashed border-emerald-200">
+              <Package className="size-12 mx-auto text-emerald-300 mb-4" />
+              <h3 className="text-lg font-bold text-emerald-900">No sales yet</h3>
+              <p className="text-emerald-600/70">When buyers purchase your crops, they will appear here.</p>
             </div>
           )}
         </div>

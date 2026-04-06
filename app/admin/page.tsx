@@ -69,6 +69,13 @@ const defaultFilters: DashboardContext = {
   unit: "quintal",
 };
 
+const COMMODITIES = [
+  "Wheat", "Mustard", "Rice", "Paddy", "Cotton", "Soybean", "Onion", 
+  "Tomato", "Potato", "Maize", "Bajra", "Jowar", "Sugarcane", 
+  "Groundnut", "Gram", "Tur", "Moong", "Urad", "Sunflower", 
+  "Sesame", "Copra", "Jute", "Apple", "Banana"
+];
+
 function daysFromAnchor(isoDate: string) {
   const target = new Date(`${isoDate}T00:00:00.000Z`);
   const anchor = new Date(`${ANCHOR_DATE_ISO}T00:00:00.000Z`);
@@ -81,9 +88,11 @@ type ComboboxFieldProps = {
   value: string;
   options: string[];
   onSelect: (value: string) => void;
+  renderOption?: (option: string) => React.ReactNode;
+  renderValue?: (value: string) => React.ReactNode;
 };
 
-function ComboboxField({ label, value, options, onSelect }: ComboboxFieldProps) {
+function ComboboxField({ label, value, options, onSelect, renderOption, renderValue }: ComboboxFieldProps) {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -91,8 +100,8 @@ function ComboboxField({ label, value, options, onSelect }: ComboboxFieldProps) 
       <Label>{label}</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" role="combobox" className="w-full justify-between">
-            {value || `Select ${label}`}
+          <Button variant="outline" role="combobox" className="w-full justify-between overflow-hidden">
+            <span className="truncate">{value ? (renderValue ? renderValue(value) : value) : `Select ${label}`}</span>
             <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -112,7 +121,7 @@ function ComboboxField({ label, value, options, onSelect }: ComboboxFieldProps) 
                     }}
                   >
                     <Check className={cn("mr-2 size-4", value === option ? "opacity-100" : "opacity-0")} />
-                    {option}
+                    {renderOption ? renderOption(option) : option}
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -233,15 +242,28 @@ export default function AdminPage() {
         </CardHeader>
         <CardContent>
           <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5" onSubmit={onSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="commodity">Commodity</Label>
-              <Input
-                id="commodity"
-                value={filters.commodity}
-                onChange={(e) => setFilters((prev) => ({ ...prev, commodity: e.target.value }))}
-                placeholder="Wheat"
-              />
-            </div>
+            <ComboboxField
+              label="Commodity"
+              value={filters.commodity}
+              options={COMMODITIES}
+              onSelect={(commodity) => setFilters((prev) => ({ ...prev, commodity }))}
+              renderOption={(opt) => (
+                <div className="flex items-center gap-2 w-full">
+                  <div className="size-6 shrink-0 rounded overflow-hidden">
+                    <img src={getCropImage(opt)} className="w-full h-full object-cover" alt={opt} />
+                  </div>
+                  <span>{opt}</span>
+                </div>
+              )}
+              renderValue={(val) => (
+                <div className="flex items-center gap-2">
+                  <div className="size-5 shrink-0 rounded overflow-hidden">
+                    <img src={getCropImage(val)} className="w-full h-full object-cover" alt={val} />
+                  </div>
+                  <span className="truncate">{val}</span>
+                </div>
+              )}
+            />
 
             <ComboboxField
               label="State"

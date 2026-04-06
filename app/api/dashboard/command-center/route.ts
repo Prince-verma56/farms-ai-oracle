@@ -1,7 +1,8 @@
 import { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { api } from "@/convex/_generated/api";
-import { fetchAgmarknetRecords, seasonalFallbackRecords, sortAgmarknetByDate } from "@/lib/agmarknet";
+import { fetchAgmarknetRecords, seasonalFallbackRecords, sortAgmarknetByDate, type AgmarknetRecord } from "@/lib/agmarknet";
 import { ANCHOR_DATE_ISO, ANCHOR_DATE_LABEL } from "@/lib/time-anchor";
 
 type OracleResponse = {
@@ -64,7 +65,7 @@ export async function GET(request: Request) {
   }
 
   console.log(`[Dashboard] Fetching Agmarknet for ${context.commodity} in ${context.city}, ${context.state}`);
-  let records = await fetchAgmarknetRecords({
+  let records: AgmarknetRecord[] = await fetchAgmarknetRecords({
     commodity: context.commodity,
     state: context.state,
     market: context.city,
@@ -88,10 +89,21 @@ export async function GET(request: Request) {
   const modalPrice = snapshot.modalPrice;
 
   const convex = new ConvexHttpClient(convexUrl);
+  
+  let token: string | null = null;
+  try {
+    const { getToken } = await auth();
+    token = await getToken({ template: "convex" });
+    if (token) {
+      convex.setAuth(token);
+    }
+  } catch (e) {
+    console.warn("[Dashboard] Clerk convex JWT template missing, skipping authenticated mutations.");
+  }
 
   let oracle: OracleResponse;
   try {
-    oracle = await convex.action(api["actions/priceOracle"].runPriceOracle, {
+    oracle = await convex.action(api.actions.priceOracle.runPriceOracle, {
       commodity: context.commodity,
       state: context.state,
       city: context.city,
@@ -143,6 +155,18 @@ export async function GET(request: Request) {
       },
     })
     .catch(() => null);
+
+  if (token) {
+    await convex
+      .mutation(api.listings.updateFarmerOracleData, {
+        cropName: context.commodity,
+        oraclePrice: oracle.fairPrice,
+        mandiModalPrice: modalPrice,
+        oracleRecommendation: oracle.recommendation,
+        oracleConfidence: oracle.confidence,
+      })
+      .catch(() => null);
+  }
 
   const listings = await convex.query(api.listings.listAvailable, {
     cropName: context.commodity,

@@ -42,7 +42,7 @@ export const getMarketTrends = query({
   handler: async (ctx, args) => {
     const snapshots = await ctx.db
       .query("marketSnapshots")
-      .withIndex("by_queryKey_and_date", (q) => q.ge("commodity", args.commodity.toLowerCase()))
+      .filter((q) => q.eq(q.field("commodity"), args.commodity.toLowerCase()))
       .take(100);
     
     return snapshots.map(s => ({

@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/sidebar";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavSecondary } from "@/components/sidebar/nav-secondary";
+import { RoleSwitchOverlay } from "@/components/sidebar/role-switch-overlay";
 
 export function AppSidebar() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export function AppSidebar() {
   const { user, isSignedIn } = useUser();
   const [role, setRole] = useState<"farmer" | "buyer">("farmer");
   const [switchingRole, setSwitchingRole] = useState(false);
+  const [targetRole, setTargetRole] = useState<"farmer" | "buyer">("farmer");
 
   const convexUser = useQuery(
     api.users.getRoleByClerkId,
@@ -47,20 +49,50 @@ export function AppSidebar() {
     }
   }, [convexUser]);
 
-  const mainItems = useMemo(
-    () => (role === "buyer" ? navConfig.buyerNav : navConfig.farmerNav),
-    [role],
+  const isFarmer = role === "farmer";
+  const roleLabel = isFarmer ? "Farmer" : "Buyer";
+
+  // Data fetching for counts
+  const farmerListings = useQuery(api.listings.listByFarmer, 
+    isFarmer && convexUser?.id ? { farmerId: convexUser.id } : "skip"
   );
+  const farmerSales = useQuery(api.orders.getFarmerOrders, 
+    isFarmer && user?.id ? { clerkId: user.id } : "skip"
+  );
+  const buyerOrders = useQuery(api.orders.getBuyerOrders, 
+    !isFarmer && user?.id ? { clerkId: user.id } : "skip"
+  );
+
+  const mainItems = useMemo(() => {
+    const baseItems = isFarmer ? [...navConfig.farmerNav] : [...navConfig.buyerNav];
+    
+    return baseItems.map(item => {
+      if (isFarmer) {
+        if (item.title === "My Inventory" && farmerListings) {
+          return { ...item, badge: farmerListings.length.toString() };
+        }
+        if (item.title === "Sales Tracking" && farmerSales) {
+          return { ...item, badge: farmerSales.length.toString() };
+        }
+      } else {
+        if (item.title === "Purchase History" && buyerOrders) {
+          return { ...item, badge: buyerOrders.length.toString() };
+        }
+      }
+      return item;
+    });
+  }, [role, farmerListings, farmerSales, buyerOrders, isFarmer]);
+
   const secondaryItems = useMemo(
     () => (role === "buyer" ? navConfig.buyerSecondaryNav : navConfig.farmerSecondaryNav),
     [role],
   );
   const quickCreateLabel = role === "buyer" ? navConfig.buyerQuickCreateLabel : navConfig.farmerQuickCreateLabel;
-  const isFarmer = role === "farmer";
-  const roleLabel = isFarmer ? "Farmer" : "Buyer";
+
 
   const switchRole = async (nextRole: "farmer" | "buyer") => {
     if (nextRole === role || switchingRole) return;
+    setTargetRole(nextRole);
     setSwitchingRole(true);
     try {
       const response = await fetch("/api/me/role", {
@@ -119,6 +151,8 @@ export function AppSidebar() {
       <SidebarFooter>
         <NavSecondary items={secondaryItems} />
       </SidebarFooter>
+
+      <RoleSwitchOverlay isSwitching={switchingRole} targetRole={targetRole} />
     </Sidebar>
   );
 }

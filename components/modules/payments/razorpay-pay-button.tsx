@@ -15,6 +15,7 @@ type RazorpayPayButtonProps = {
   successMessage?: string;
   onSuccess?: (payload: PaymentSuccessPayload) => Promise<void> | void;
   onFailure?: (error: Error) => Promise<void> | void;
+  className?: string; // Add className
   children: React.ReactNode;
 };
 
@@ -29,6 +30,7 @@ export function RazorpayPayButton({
   successMessage = "Payment completed successfully",
   onSuccess,
   onFailure,
+  className,
   children,
 }: RazorpayPayButtonProps) {
   const { initPayment, isProcessing } = useRazorpay();
@@ -49,6 +51,7 @@ export function RazorpayPayButton({
           onFailure,
         });
       }}
+      className={className}
       loadingText="Opening checkout..."
       showSuccessToast
       successMessage={successMessage}

@@ -63,37 +63,43 @@ export async function fetchAgmarknetRecords(params: {
     market: params.market,
   });
 
-  const response = await fetch(`http://127.0.0.1:5000/request?${query.toString()}`, {
-    method: "GET",
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(`http://127.0.0.1:5000/request?${query.toString()}`, {
+      method: "GET",
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(`Agmarknet request failed with ${response.status}`);
+    if (!response.ok) {
+      console.warn(`[Agmarknet] Request failed for ${params.market}: ${response.status}`);
+      return [];
+    }
+
+    const payload = (await response.json()) as AgmarknetRawRecord[];
+    if (!Array.isArray(payload)) return [];
+    
+    return payload
+      .map((record) => {
+        const parsedDate = parseAgmarknetDate(record.Date ?? "");
+        const isoDate = parsedDate ? parsedDate.toISOString().slice(0, 10) : ANCHOR_DATE.toISOString().slice(0, 10);
+
+        return {
+          date: isoDate,
+          commodity: record.Commodity ?? params.commodity,
+          state: record.State ?? params.state,
+          district: record.District ?? "",
+          market: record.Market ?? params.market,
+          minPrice: parsePrice(record["Min Prize"]),
+          maxPrice: parsePrice(record["Max Prize"]),
+          modalPrice: parsePrice(record["Model Prize"]),
+          isHistorical: parsedDate ? parsedDate < APRIL_2026_START : true,
+          source: "live",
+        } satisfies AgmarknetRecord;
+      })
+      .filter((record) => record.modalPrice > 0);
+  } catch (error) {
+    console.error(`[Agmarknet] Connection refused on 127.0.0.1:5000. Ensure scraper is running.`);
+    return [];
   }
-
-  const payload = (await response.json()) as AgmarknetRawRecord[];
-  if (!Array.isArray(payload)) return [];
-
-  return payload
-    .map((record) => {
-      const parsedDate = parseAgmarknetDate(record.Date ?? "");
-      const isoDate = parsedDate ? parsedDate.toISOString().slice(0, 10) : ANCHOR_DATE.toISOString().slice(0, 10);
-
-      return {
-        date: isoDate,
-        commodity: record.Commodity ?? params.commodity,
-        state: record.State ?? params.state,
-        district: record.District ?? "",
-        market: record.Market ?? params.market,
-        minPrice: parsePrice(record["Min Prize"]),
-        maxPrice: parsePrice(record["Max Prize"]),
-        modalPrice: parsePrice(record["Model Prize"]),
-        isHistorical: parsedDate ? parsedDate < APRIL_2026_START : true,
-        source: "live",
-      } satisfies AgmarknetRecord;
-    })
-    .filter((record) => record.modalPrice > 0);
 }
 
 export function seasonalFallbackRecords(params: { commodity: string; state: string; market: string }) {

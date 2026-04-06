@@ -2,38 +2,67 @@
 
 import React from "react";
 import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { type MarketplaceProduct } from "@/components/marketplace/types";
+import { RazorpayPayButton } from "@/components/modules/payments/razorpay-pay-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getCropImage } from "@/lib/asset-mapping";
 import { DashboardSkeleton } from "@/components/sidebar/dashboard-skeleton";
 import { motion } from "framer-motion";
-import { Package, Calendar, ArrowRight, CheckCircle2, Clock, XCircle, ShoppingCart } from "lucide-react";
+import { Truck, Calendar, ArrowRight, Trash2, Package, Clock, XCircle, ShoppingCart, CheckCircle2, User, Phone } from "lucide-react";
 import { ClientAnimationWrapper } from "@/components/ui/preloader/ClientAnimationWrapper";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function BuyerOrdersPage() {
   const { user, isLoaded } = useUser();
   
-  const convexUser = useQuery(api.users.getRoleByClerkId, 
+  const orders = useQuery(api.orders.getBuyerOrders, 
     isLoaded && user?.id ? { clerkId: user.id } : "skip"
   );
-
-  const orders = useQuery(api.crud.list, 
-    { table: "orders" }
-  );
-
-  const myOrders = React.useMemo(() => {
-    if (!orders || !convexUser?.id) return [];
-    return orders.filter((o: any) => o.buyerId === convexUser.id);
-  }, [orders, convexUser]);
+  const deleteOrder = useMutation(api.orders.deleteOrder);
+  const clearHistory = useMutation(api.orders.clearOrderHistory);
 
   if (!isLoaded || orders === undefined) {
     return <DashboardSkeleton />;
   }
+
+  const handleDelete = async (e: React.MouseEvent, orderId: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await deleteOrder({ orderId });
+      toast.success("Record removed from history");
+    } catch (error) {
+      toast.error("Failed to remove record");
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!user?.id) return;
+    try {
+      await clearHistory({ clerkId: user.id });
+      toast.success("Purchase history cleared");
+    } catch (error) {
+      toast.error("Failed to clear history");
+    }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -45,83 +74,131 @@ export default function BuyerOrdersPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-[1200px] mx-auto pb-20">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-black tracking-tight text-zinc-900">Purchase History</h1>
-        <p className="text-zinc-500 font-medium">Tuesday, April 7, 2026 • Tracking your farmgate orders</p>
+    <div className="space-y-8 max-w-6xl mx-auto pb-20">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-emerald-100/50 pb-8">
+        <div className="space-y-2">
+          <Badge variant="outline" className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20 font-bold mb-2 uppercase tracking-tighter text-[10px]">Ledger v2.0</Badge>
+          <h1 className="text-4xl font-black tracking-tight text-zinc-900 dark:text-white">Purchase History</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 font-medium tracking-tight text-lg">Manage and track your direct-from-farm acquisitions.</p>
+        </div>
+        
+        {orders.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="rounded-2xl border-red-100 bg-red-50/50 text-red-600 hover:bg-red-100 hover:text-red-700 font-bold transition-all gap-2 px-6">
+                <Trash2 className="size-4" />
+                Clear All History
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-2xl font-black">Purge Ledger?</AlertDialogTitle>
+                <AlertDialogDescription className="font-medium text-zinc-500">
+                  This will permanently remove all transaction records from your view. This action is irreversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-6 gap-3">
+                <AlertDialogCancel className="rounded-xl font-bold border-zinc-100 h-12 text-zinc-500">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClearAll} className="rounded-xl font-black bg-red-500 hover:bg-red-600 text-white border-none h-12 shadow-lg shadow-red-200">
+                  Yes, Clear All
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       <ClientAnimationWrapper>
-        <div className="space-y-4">
-          {myOrders.map((order: any, index: number) => (
-            <motion.div
-              key={order._id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className="group overflow-hidden border-none bg-white/70 backdrop-blur-md shadow-sm hover:shadow-md transition-all">
-                <CardContent className="p-0">
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center">
-                    <div className="w-full sm:w-32 h-32 sm:h-auto aspect-video sm:aspect-square overflow-hidden">
-                      <img 
-                        src={getCropImage("Wheat")} // Fallback as we don't have listing join here easily without custom query
-                        className="w-full h-full object-cover"
-                        alt="Order Item"
-                      />
+        <div className="space-y-10">
+          {orders.map((order: any, index: number) => (
+            <Link href={`/marketplace/track?orderId=${order._id}`} key={order._id}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="group relative cursor-pointer"
+              >
+                <Card className="border border-zinc-200 dark:border-zinc-800 bg-card shadow-2xl shadow-emerald-900/5 rounded-[2rem] overflow-hidden hover:shadow-emerald-900/10 transition-all duration-500 hover:bg-card/80 group/card">
+                  <div className="flex flex-col md:flex-row w-full relative">
+                    <div className="md:w-80 h-56 md:h-64 relative overflow-hidden shrink-0 border-r border-zinc-100 dark:border-zinc-800/50">
+                       <img 
+                          src={getCropImage(order.cropName)} 
+                          className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-700 opacity-95 group-hover/card:opacity-100" 
+                          alt={order.cropName} 
+                       />
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                     </div>
                     
-                    <div className="flex-1 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Order #{order._id.slice(-6)}</span>
-                          <Badge variant="outline" className="capitalize flex items-center gap-1.5 py-0.5">
+                    <div className="flex-1 p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 relative z-20">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-black uppercase tracking-widest text-emerald-600/60 bg-emerald-50 px-2 py-1 rounded-md">Order #{order._id.slice(-6)}</span>
+                          <Badge variant="outline" className="capitalize flex items-center gap-1.5 py-0.5 border-emerald-200 text-emerald-800 bg-emerald-50 font-bold">
                             {getStatusIcon(order.orderStatus)}
                             {order.orderStatus}
                           </Badge>
                         </div>
-                        <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
-                          Direct Farm Purchase
-                          <ArrowRight className="size-4 text-zinc-300" />
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm text-zinc-500">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="size-3.5" />
-                            {new Date(order._creationTime).toLocaleDateString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Package className="size-3.5" />
-                            Qty: Standard
-                          </span>
+                        <h3 className="text-2xl font-black text-zinc-900">{order.cropName}</h3>
+                        
+                        {/* Farmer Contact Exchange */}
+                        <div className="flex flex-wrap gap-4 pt-2 border-t border-zinc-100 mt-4">
+                           <div className="flex items-center gap-2 group/contact">
+                              <div className="size-8 rounded-lg bg-zinc-50 flex items-center justify-center border border-zinc-100 group-hover/contact:bg-emerald-50 transition-colors">
+                                 <User className="size-4 text-emerald-600" />
+                              </div>
+                              <div className="flex flex-col">
+                                 <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Verified Farmer</p>
+                                 <p className="text-xs font-bold text-zinc-700">{order.farmerName}</p>
+                              </div>
+                           </div>
+                           <div className="flex items-center gap-2 group/contact">
+                              <div className="size-8 rounded-lg bg-zinc-50 flex items-center justify-center border border-zinc-100 group-hover/contact:bg-emerald-50 transition-colors">
+                                 <Phone className="size-4 text-emerald-600" />
+                              </div>
+                              <div className="flex flex-col">
+                                 <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Direct Line</p>
+                                 <p className="text-xs font-bold text-zinc-700">{order.farmerPhone}</p>
+                              </div>
+                           </div>
                         </div>
                       </div>
-                      
-                      <div className="text-left sm:text-right">
-                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Total Amount</p>
-                        <p className="text-3xl font-black text-zinc-900">₹{order.totalAmount.toLocaleString("en-IN")}</p>
-                        <Badge className={cn(
-                          "mt-2",
-                          order.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                        )}>
-                          {order.paymentStatus === "paid" ? "Payment Successful" : "Payment Pending"}
-                        </Badge>
+
+                      <div className="flex items-center gap-6 w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-none border-zinc-100 dark:border-zinc-800 mt-2 sm:mt-0">
+                        <div className="text-left sm:text-right shrink-0">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-1">Impact Paid</p>
+                          <p className="text-2xl font-black text-zinc-950 dark:text-white">₹{(order.totalAmount / 100).toLocaleString()}</p>
+                        </div>
+                        <div className="flex gap-2 items-center">
+                           <div className="size-12 rounded-2xl bg-zinc-900 dark:bg-white dark:text-zinc-900 text-white flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500 shadow-xl shadow-zinc-200 dark:shadow-none">
+                             <ArrowRight className="size-6" />
+                           </div>
+                           <Button 
+                             variant="ghost" 
+                             size="icon" 
+                             onClick={(e) => handleDelete(e, order._id)}
+                             className="rounded-xl hover:bg-red-50 hover:text-red-500 text-zinc-300 dark:text-zinc-600 dark:hover:bg-red-500/10 transition-colors"
+                           >
+                             <Trash2 className="size-5" />
+                           </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </Card>
+              </motion.div>
+            </Link>
           ))}
           
-          {myOrders.length === 0 && (
-            <div className="py-20 text-center">
-              <div className="size-20 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <ShoppingCart className="size-10 text-zinc-300" />
+          {orders.length === 0 && (
+            <div className="py-24 text-center bg-emerald-50/40 rounded-[3rem] border border-dashed border-emerald-200/60 mt-4 relative overflow-hidden">
+               <div className="absolute inset-0 bg-[linear-gradient(to_right,#10b98110_1px,transparent_1px),linear-gradient(to_bottom,#10b98110_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
+              <div className="size-24 bg-white shadow-xl shadow-emerald-900/5 rounded-full flex items-center justify-center mx-auto mb-6 relative z-10 border border-emerald-100">
+                <ShoppingCart className="size-10 text-emerald-600" />
               </div>
-              <h3 className="text-xl font-bold text-zinc-900">No orders yet</h3>
-              <p className="text-zinc-500">Your farmgate purchases will appear here.</p>
-              <Button asChild className="mt-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl">
-                <Link href="/marketplace">Go to Discovery Feed</Link>
+              <h3 className="text-2xl font-black text-emerald-950 relative z-10">No orders yet</h3>
+              <p className="text-emerald-700/70 text-lg font-medium mb-4 relative z-10 max-w-sm mx-auto">Your farmgate purchases and direct-from-farm deals will appear here.</p>
+              <Button asChild className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 px-8 font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95 relative z-10">
+                <Link href="/marketplace">Explore the Discovery Feed</Link>
               </Button>
             </div>
           )}

@@ -79,3 +79,22 @@ export const upsertRoleByClerkId = mutation({
     });
   },
 });
+export const getUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.userId);
+  },
+});
+
+export const updatePhone = mutation({
+  args: { clerkId: v.string(), phone: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+    await ctx.db.patch(user._id, { phone: args.phone });
+  },
+});

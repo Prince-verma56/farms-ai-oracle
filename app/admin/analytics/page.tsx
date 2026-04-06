@@ -47,9 +47,9 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
           
-          <Card className="border-none bg-zinc-900 text-white rounded-3xl">
+          <Card className="border-none bg-zinc-100/50 dark:bg-zinc-900/50 text-zinc-950 dark:text-white rounded-3xl transition-all hover:ring-1 hover:ring-zinc-200 dark:hover:ring-zinc-800">
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs font-bold uppercase tracking-widest text-zinc-500">Total Sales</CardDescription>
+              <CardDescription className="text-xs font-bold uppercase tracking-widest text-zinc-400">Total Sales</CardDescription>
               <CardTitle className="text-3xl font-black">{revenueData.paidCount}</CardTitle>
             </CardHeader>
             <CardContent>
@@ -94,30 +94,30 @@ export default function AnalyticsPage() {
             </Card>
           </div>
 
-          <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-zinc-900 text-white p-8">
+          <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-zinc-100/50 dark:bg-zinc-900/50 text-zinc-950 dark:text-white p-8 transition-all hover:shadow-xl">
             <CardHeader className="p-0 mb-6">
               <CardTitle className="flex items-center gap-2">
-                <PieChart className="size-5 text-emerald-400" />
+                <PieChart className="size-5 text-emerald-600 dark:text-emerald-400" />
                 Commodity Mix
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
               {[
-                { name: "Wheat", value: 65, color: "bg-primary" },
-                { name: "Mustard", value: 25, color: "bg-emerald-500" },
-                { name: "Other", value: 10, color: "bg-zinc-700" }
+                { name: "Wheat", value: 65, color: "bg-emerald-600" },
+                { name: "Mustard", value: 25, color: "bg-emerald-400" },
+                { name: "Other", value: 10, color: "bg-zinc-300 dark:bg-zinc-700" }
               ].map((item) => (
                 <div key={item.name} className="space-y-2">
                   <div className="flex justify-between text-sm font-bold">
-                    <span>{item.name}</span>
+                    <span className="text-zinc-600 dark:text-zinc-400">{item.name}</span>
                     <span>{item.value}%</span>
                   </div>
-                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className={`h-full ${item.color}`} style={{ width: `${item.value}%` }} />
+                  <div className="h-2 w-full bg-zinc-200 dark:bg-white/5 rounded-full overflow-hidden">
+                    <div className={`h-full ${item.color} rounded-full transition-all duration-1000`} style={{ width: `${item.value}%` }} />
                   </div>
                 </div>
               ))}
-              <p className="text-xs text-zinc-500 leading-relaxed pt-4 border-t border-white/5">
+              <p className="text-xs text-zinc-500 dark:text-zinc-500 leading-relaxed pt-4 border-t border-zinc-200 dark:border-white/5">
                 AI Insight: Wheat remains your strongest asset. Consider diversifying into Mustard for higher Q3 margins.
               </p>
             </CardContent>

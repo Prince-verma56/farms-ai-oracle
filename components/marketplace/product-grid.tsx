@@ -5,19 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCropImage } from "@/lib/asset-mapping";
-import { ShoppingCart, MapPin, Gauge } from "lucide-react";
-
-export type MarketplaceProduct = {
-  id: string;
-  crop: string;
-  location: string;
-  quantity: string;
-  buyerPricePerKg: number;
-  localMandiPricePerKg: number;
-  trustGaugeText: string;
-  insight: string;
-  mandiModalPrice: string;
-};
+import { MapPin, Gauge, ShoppingCart } from "lucide-react";
+import { CheckoutModal } from "./checkout-modal";
+import { type MarketplaceProduct } from "./types";
+import Image from "next/image";
 
 type ProductGridProps = {
   products: MarketplaceProduct[];
@@ -46,11 +37,13 @@ export function ProductGrid({ products }: ProductGridProps) {
           className="break-inside-avoid"
         >
           <Card className="group overflow-hidden border-none bg-white/70 backdrop-blur-md shadow-sm hover:shadow-xl transition-all duration-300">
-            <div className="relative aspect-[4/3] overflow-hidden">
-              <img 
+            <div className="relative aspect-4/3 overflow-hidden">
+              <Image 
                 src={getCropImage(product.crop)} 
                 alt={product.crop}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className="object-cover transition-transform duration-500 group-hover:scale-110"
               />
               <div className="absolute top-3 left-3">
                 <Badge className="bg-emerald-500/90 hover:bg-emerald-600 text-white border-none backdrop-blur-md">
@@ -64,6 +57,15 @@ export function ProductGrid({ products }: ProductGridProps) {
                 <div>
                   <CardTitle className="text-xl font-bold text-zinc-900">{product.crop}</CardTitle>
                   <CardDescription className="flex items-center gap-1 mt-1">
+                    {product.farmerImage ? (
+                      <img src={product.farmerImage} alt={product.farmerName} className="size-4 rounded-full object-cover" />
+                    ) : (
+                      <div className="size-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[8px] uppercase">
+                        {product.farmerName?.charAt(0) || "F"}
+                      </div>
+                    )}
+                    <span className="font-medium text-zinc-700">{product.farmerName}</span>
+                    <span className="text-zinc-300 mx-1">•</span>
                     <MapPin className="size-3" />
                     {product.location}
                   </CardDescription>
@@ -92,10 +94,12 @@ export function ProductGrid({ products }: ProductGridProps) {
             </CardContent>
 
             <CardFooter className="p-4 pt-0">
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 rounded-2xl shadow-lg shadow-emerald-200 transition-all active:scale-[0.98] gap-2">
-                <ShoppingCart className="size-4" />
-                Purchase Now
-              </Button>
+              <CheckoutModal product={product}>
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 rounded-2xl shadow-lg shadow-emerald-200 transition-all active:scale-[0.98] gap-2">
+                  <ShoppingCart className="size-4" />
+                  Purchase Now
+                </Button>
+              </CheckoutModal>
             </CardFooter>
           </Card>
         </motion.div>

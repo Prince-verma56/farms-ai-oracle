@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Dot } from "lucide-react";
+import { Dot, BarChart3 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateShort } from "@/lib/time-anchor";
@@ -110,53 +110,84 @@ export function ChartAreaInteractive({ data, anchorDate }: ChartAreaInteractiveP
         </CardAction>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[280px] w-full">
-          <AreaChart data={filteredData}>
-            <defs>
-              <linearGradient id="fillHistoricalPrice" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-historicalPrice)" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="var(--color-historicalPrice)" stopOpacity={0.02} />
-              </linearGradient>
-              <linearGradient id="fillForecastPrice" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-forecastPrice)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="var(--color-forecastPrice)" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="date"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={28}
-              tickFormatter={(value) => formatDateShort(String(value))}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={
-                <ChartTooltipContent indicator="dot" labelFormatter={(value) => formatDateShort(String(value))} />
-              }
-            />
-            <ReferenceLine x={anchorDate} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
-            <Area
-              type="monotone"
-              dataKey="historicalPrice"
-              stroke="var(--color-historicalPrice)"
-              fill="url(#fillHistoricalPrice)"
-              strokeWidth={2}
-              connectNulls={false}
-            />
-            <Area
-              type="monotone"
-              dataKey="forecastPrice"
-              stroke="var(--color-forecastPrice)"
-              fill="url(#fillForecastPrice)"
-              strokeWidth={2.5}
-              strokeDasharray="7 6"
-              connectNulls={false}
-            />
-          </AreaChart>
-        </ChartContainer>
+        <div className="relative">
+          {filteredData.length === 0 ? (
+            <div className="h-[280px] w-full flex flex-col items-center justify-center space-y-3 bg-zinc-50/50 dark:bg-zinc-900/20 rounded-[2rem] border border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in duration-500">
+               <div className="size-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                  <BarChart3 className="size-6 text-zinc-400 animate-pulse" />
+               </div>
+               <div className="text-center">
+                  <p className="text-sm font-black text-zinc-900 dark:text-white">Scanning Regional Mandis...</p>
+                  <p className="text-[10px] font-medium text-zinc-500">Retrieving modal prices for the last {range === "7d" ? "7 days" : range === "30d" ? "30 days" : "90 days"}</p>
+               </div>
+            </div>
+          ) : (
+            <ChartContainer config={chartConfig} className="h-[280px] w-full">
+              <AreaChart data={filteredData}>
+                <defs>
+                  <linearGradient id="fillHistoricalPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-historicalPrice)" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="var(--color-historicalPrice)" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="fillForecastPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-forecastPrice)" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="var(--color-forecastPrice)" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={12}
+                  minTickGap={32}
+                  tickFormatter={(value) => formatDateShort(String(value))}
+                  className="text-[10px] font-bold text-zinc-400"
+                />
+                <ChartTooltip
+                  cursor={{ stroke: 'rgba(var(--primary), 0.2)', strokeWidth: 1 }}
+                  content={
+                    <ChartTooltipContent 
+                      indicator="dashed" 
+                      labelFormatter={(value) => formatDateShort(String(value))}
+                      className="rounded-2xl border-zinc-100 dark:border-zinc-800 shadow-2xl"
+                    />
+                  }
+                />
+                <ReferenceLine 
+                  x={anchorDate} 
+                  stroke="var(--muted-foreground)" 
+                  strokeDasharray="4 4" 
+                  label={{ 
+                    position: 'top', 
+                    value: 'Today', 
+                    className: 'text-[9px] font-black uppercase tracking-widest fill-zinc-400' 
+                  }} 
+                />
+                <Area
+                  type="monotone"
+                  dataKey="historicalPrice"
+                  stroke="var(--color-historicalPrice)"
+                  fill="url(#fillHistoricalPrice)"
+                  strokeWidth={2.5}
+                  connectNulls={true}
+                  dot={{ r: 4, fill: 'var(--color-historicalPrice)', strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="forecastPrice"
+                  stroke="var(--color-forecastPrice)"
+                  fill="url(#fillForecastPrice)"
+                  strokeWidth={3}
+                  strokeDasharray="6 4"
+                  connectNulls={true}
+                  style={{ filter: "drop-shadow(0px 0px 8px var(--color-forecastPrice))" }}
+                />
+              </AreaChart>
+            </ChartContainer>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

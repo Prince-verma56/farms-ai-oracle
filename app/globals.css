@@ -142,3 +142,9 @@
     font-family: var(--font-mono);
   }
 }
+
+/* Fix Razorpay interaction inside Radix UI Modals (Stops frozen/lag/click blockage) */
+.razorpay-container {
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+}
