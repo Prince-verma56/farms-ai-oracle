@@ -8,6 +8,8 @@ import {
   LayoutDashboard,
   Leaf,
   ListOrdered,
+  Route,
+  MapPinned,
   Settings,
   ShoppingCart,
   Sparkles,
@@ -28,6 +30,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   UserRound,
   Leaf,
   Tractor,
+  Route,
   CreditCard,
   Activity,
   Sparkles,
@@ -37,6 +40,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Settings,
   CircleHelp,
   BookOpen,
+  MapPinned,
 };
 
 export function resolveIcon(name: string): LucideIcon {

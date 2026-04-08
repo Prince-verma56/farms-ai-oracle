@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 type RoleGateProps = {
   requiredRole: "farmer" | "buyer";
@@ -10,30 +13,40 @@ type RoleGateProps = {
 
 export function RoleGate({ requiredRole, children }: RoleGateProps) {
   const router = useRouter();
+  const { user, isLoaded, isSignedIn } = useUser();
   const [ready, setReady] = useState(false);
+  const convexRole = useQuery(
+    api.users.getRoleByClerkId,
+    isSignedIn && user?.id ? { clerkId: user.id } : "skip"
+  );
 
   useEffect(() => {
-    const verify = async () => {
-      const response = await fetch("/api/me/role", { cache: "no-store" });
-      if (!response.ok) {
-        router.replace("/sign-in");
-        return;
-      }
+    if (!isLoaded) return;
 
-      const data = (await response.json()) as { role?: "farmer" | "buyer" | null };
-      if (!data.role) {
-        router.replace("/role-redirect");
-        return;
-      }
-      if (data.role !== requiredRole) {
-        router.replace(data.role === "farmer" ? "/admin" : "/marketplace");
-        return;
-      }
-      setReady(true);
-    };
+    if (!isSignedIn || !user) {
+      router.replace("/sign-in");
+      return;
+    }
 
-    verify().catch(() => router.replace("/sign-in"));
-  }, [requiredRole, router]);
+    const metadataRole = user.publicMetadata?.role;
+    const normalizedMetadataRole =
+      metadataRole === "farmer" || metadataRole === "buyer" ? metadataRole : null;
+    const normalizedConvexRole =
+      convexRole?.role === "farmer" || convexRole?.role === "buyer" ? convexRole.role : null;
+    const role = normalizedMetadataRole ?? normalizedConvexRole;
+
+    if (!role) {
+      router.replace("/onboarding");
+      return;
+    }
+
+    if (role !== requiredRole) {
+      router.replace(role === "farmer" ? "/admin" : "/marketplace");
+      return;
+    }
+
+    setReady(true);
+  }, [requiredRole, router, isLoaded, isSignedIn, user, convexRole]);
 
   if (!ready) {
     return <div className="p-6 text-sm text-muted-foreground">Resolving workspace...</div>;

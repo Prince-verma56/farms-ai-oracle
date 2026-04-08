@@ -9,9 +9,13 @@ export default defineSchema({
     clerkId: v.string(), 
     // role is optional initially so we can redirect to onboarding
     role: v.optional(v.union(v.literal("farmer"), v.literal("buyer"))),
+    roles: v.optional(v.array(v.union(v.literal("farmer"), v.literal("buyer")))),
     hasOnboarded: v.boolean(),
     imageUrl: v.optional(v.string()),
     phone: v.optional(v.string()),
+    lat: v.optional(v.number()),
+    lng: v.optional(v.number()),
+    locationUpdatedAt: v.optional(v.number()),
   }).index("by_clerkId", ["clerkId"]),
 
   // --- PRODUCT MODULE: LISTINGS (The Farmer's Crop) ---
@@ -31,39 +35,82 @@ export default defineSchema({
     status: v.union(v.literal("available"), v.literal("sold")),
     location: v.string(),
     imageUrl: v.optional(v.string()),
+    approxLat: v.optional(v.number()),
+    approxLng: v.optional(v.number()),
+    exactLat: v.optional(v.number()),
+    exactLng: v.optional(v.number()),
+    qualityScore: v.optional(v.string()),
+    qualityChecklist: v.optional(v.string()),
   })
   .index("by_status", ["status"])
   .index("by_farmer", ["farmerId"])
   .index("by_crop", ["cropName"])
-  .index("by_crop_and_status", ["cropName", "status"]),
+  .index("by_crop_and_status", ["cropName", "status"])
+  .index("by_approxLat_and_approxLng", ["approxLat", "approxLng"]),
 
   // --- PRODUCT MODULE: ORDERS (The Transactions) ---
   orders: defineTable({
     listingId: v.id("listings"),
-    buyerId: v.id("users"),
-    farmerId: v.id("users"),
+    buyerId: v.union(v.id("users"), v.string()),
+    farmerId: v.union(v.id("users"), v.string()),
     totalAmount: v.number(),
+    type: v.optional(v.union(v.literal("sample"), v.literal("bulk"))),
+    quantity: v.optional(v.number()),
+    unit: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("escrow"),
+        v.literal("shipped"),
+        v.literal("delivered"),
+        v.literal("disputed"),
+        v.literal("completed"),
+      )
+    ),
+    escrowReleaseAt: v.optional(v.number()),
+    buyerConfirmed: v.optional(v.boolean()),
+    createdAt: v.optional(v.number()),
     // Payment Integration Fields
     paymentStatus: v.union(v.literal("pending"), v.literal("paid"), v.literal("failed")),
     paymentId: v.optional(v.string()), // For Razorpay Payment ID (rzp_pay_xxx)
     razorpayOrderId: v.optional(v.string()), // For Razorpay Order ID (order_xxx)
     orderStatus: v.union(
+      v.literal("pending"),
+      v.literal("escrow"),
       v.literal("placed"), 
       v.literal("shipped"), 
       v.literal("delivered"),
+      v.literal("disputed"),
+      v.literal("completed"),
       v.literal("cancelled")
     ),
-    deliveryAddress: v.optional(v.object({
-      street: v.string(),
-      city: v.string(),
-      state: v.string(),
-      pincode: v.string(),
-    })),
+    deliveryAddress: v.optional(
+      v.union(
+        v.object({
+          street: v.string(),
+          city: v.string(),
+          state: v.string(),
+          pincode: v.string(),
+        }),
+        v.string()
+      )
+    ),
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
   })
   .index("by_buyer", ["buyerId"])
-  .index("by_farmer", ["farmerId"]),
+  .index("by_farmer", ["farmerId"])
+  .index("by_status", ["status"]),
+
+  messages: defineTable({
+    listingId: v.id("listings"),
+    senderId: v.string(),
+    receiverId: v.string(),
+    text: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_listing", ["listingId"])
+    .index("by_listing_and_createdAt", ["listingId", "createdAt"]),
 
   // --- MARKET INTELLIGENCE MODULE ---
   marketSnapshots: defineTable({

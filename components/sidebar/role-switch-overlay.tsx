@@ -25,8 +25,10 @@ export function RoleSwitchOverlay({ isSwitching, targetRole }: RoleSwitchOverlay
         >
           <motion.div
             layout
-            initial={{ scale: 0.95, y: 10 }}
-            animate={{ scale: 1, y: 0 }}
+            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 220, damping: 24 }}
             className="mx-4 flex w-full max-w-lg flex-col items-center space-y-8 rounded-[2rem] border border-white/20 bg-white/10 p-10 text-center shadow-2xl"
           >
             <div className="relative">
@@ -55,7 +57,7 @@ export function RoleSwitchOverlay({ isSwitching, targetRole }: RoleSwitchOverlay
                 transition={{ delay: 0.3 }}
                 className="font-medium text-muted-foreground"
               >
-                Syncing your permissions and personalizing your dashboard...
+                Syncing Workspace...
               </motion.p>
             </div>
 

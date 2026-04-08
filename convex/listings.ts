@@ -1,6 +1,24 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function distanceInKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusKm * c;
+}
+
 export const getById = query({
   args: { id: v.id("listings") },
   handler: async (ctx, args) => {
@@ -190,5 +208,102 @@ export const deleteListing = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.listingId);
+  },
+});
+
+export const getListingsNearby = query({
+  args: {
+    lat: v.number(),
+    lng: v.number(),
+    radiusKm: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const radiusKm = Math.min(Math.max(args.radiusKm ?? 50, 1), 200);
+    const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
+
+    const candidates = await ctx.db
+      .query("listings")
+      .withIndex("by_status", (q) => q.eq("status", "available"))
+      .order("desc")
+      .take(300);
+
+    const results: Array<{
+      id: string;
+      cropName: string;
+      description: string;
+      pricePerKg: number;
+      quantity: string;
+      location: string;
+      imageUrl?: string;
+      farmerId: string;
+      farmerName: string;
+      farmerImage?: string;
+      approxLat: number;
+      approxLng: number;
+      distanceKm: number;
+      oraclePrice?: number;
+      mandiModalPrice?: number;
+      qualityScore?: string;
+    }> = [];
+
+    for (const listing of candidates) {
+      if (listing.approxLat === undefined || listing.approxLng === undefined) continue;
+
+      const distanceKm = distanceInKm(args.lat, args.lng, listing.approxLat, listing.approxLng);
+      if (distanceKm > radiusKm) continue;
+
+      const farmer = await ctx.db.get(listing.farmerId);
+      results.push({
+        id: String(listing._id),
+        cropName: listing.cropName,
+        description: listing.description,
+        pricePerKg: listing.pricePerKg,
+        quantity: listing.quantity,
+        location: listing.location,
+        imageUrl: listing.imageUrl,
+        farmerId: String(listing.farmerId),
+        farmerName: farmer?.name ?? "Verified Farmer",
+        farmerImage: farmer?.imageUrl,
+        approxLat: listing.approxLat,
+        approxLng: listing.approxLng,
+        distanceKm: Number(distanceKm.toFixed(1)),
+        oraclePrice: listing.oraclePrice,
+        mandiModalPrice: listing.mandiModalPrice,
+        qualityScore: listing.qualityScore,
+      });
+    }
+
+    results.sort((a, b) => a.distanceKm - b.distanceKm);
+
+    return {
+      success: true,
+      data: results.slice(0, limit),
+    } as const;
+  },
+});
+
+export const getListingsByFarmer = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const farmer = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!farmer) {
+      return { success: false, error: "Farmer not found" } as const;
+    }
+
+    const listings = await ctx.db
+      .query("listings")
+      .withIndex("by_farmer", (q) => q.eq("farmerId", farmer._id))
+      .order("desc")
+      .take(200);
+
+    return {
+      success: true,
+      data: listings,
+    } as const;
   },
 });

@@ -32,7 +32,16 @@ export function NavMain({ items }: NavMainProps) {
 
             return (
               <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  tooltip={item.title}
+                  className={
+                    isActive
+                      ? "border-l-2 border-emerald-500 bg-white/50 shadow-[0_0_0_1px_rgba(16,185,129,0.15),0_6px_16px_rgba(16,185,129,0.12)] backdrop-blur"
+                      : ""
+                  }
+                >
                   <Link href={item.href}>
                     <Icon />
                     <span>{item.title}</span>

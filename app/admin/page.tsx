@@ -65,7 +65,7 @@ const defaultFilters: DashboardContext = {
   commodity: "Wheat",
   state: "Rajasthan",
   city: "Jaipur",
-  quantity: 120,
+  quantity: 100,
   unit: "quintal",
 };
 

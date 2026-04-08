@@ -14,6 +14,7 @@ import type * as crud from "../crud.js";
 import type * as listingOracleInternal from "../listingOracleInternal.js";
 import type * as listings from "../listings.js";
 import type * as marketSync from "../marketSync.js";
+import type * as messages from "../messages.js";
 import type * as orders from "../orders.js";
 import type * as users from "../users.js";
 
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   listingOracleInternal: typeof listingOracleInternal;
   listings: typeof listings;
   marketSync: typeof marketSync;
+  messages: typeof messages;
   orders: typeof orders;
   users: typeof users;
 }>;

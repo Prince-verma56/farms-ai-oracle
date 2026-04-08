@@ -3,6 +3,9 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { openRazorpayCheckout } from "@/lib/payments/client/razorpay";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import type {
   CreatePaymentOrderResult,
   PaymentCustomer,
@@ -22,8 +25,23 @@ type InitPaymentParams = {
   onFailure?: (error: Error) => Promise<void> | void;
 };
 
+type EscrowCheckoutParams = {
+  buyerId: string;
+  farmerId: string;
+  listingId: Id<"listings">;
+  type: "sample" | "bulk";
+  quantity: number;
+  unit: string;
+  totalAmount: number;
+  description: string;
+  deliveryAddress?: string;
+  customer?: PaymentCustomer;
+};
+
 export const useRazorpay = () => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const createOrder = useMutation(api.orders.createOrder);
+  const releaseEscrow = useMutation(api.orders.releaseEscrow);
 
   const initPayment = useCallback(async (params: InitPaymentParams) => {
     setIsProcessing(true);
@@ -102,5 +120,45 @@ export const useRazorpay = () => {
     }
   }, []);
 
-  return { initPayment, isProcessing };
+  const checkoutWithEscrow = useCallback(
+    async (params: EscrowCheckoutParams) => {
+      const success = await initPayment({
+        amountInRupees: params.totalAmount,
+        description: params.description,
+        customer: params.customer,
+        showDefaultToasts: true,
+      });
+
+      const orderId = await createOrder({
+        buyerId: params.buyerId,
+        farmerId: params.farmerId,
+        listingId: params.listingId,
+        type: params.type,
+        quantity: params.quantity,
+        unit: params.unit,
+        totalAmount: params.totalAmount,
+        paymentId: success.paymentId,
+        deliveryAddress: params.deliveryAddress,
+      });
+
+      return {
+        success: true,
+        data: {
+          orderId,
+          paymentId: success.paymentId,
+          escrowReleaseAt: Date.now() + 72 * 60 * 60 * 1000,
+        },
+      } as const;
+    },
+    [createOrder, initPayment]
+  );
+
+  const confirmReceivedAndRelease = useCallback(
+    async (orderId: Id<"orders">) => {
+      return await releaseEscrow({ orderId, buyerConfirmed: true });
+    },
+    [releaseEscrow]
+  );
+
+  return { initPayment, isProcessing, checkoutWithEscrow, confirmReceivedAndRelease };
 };

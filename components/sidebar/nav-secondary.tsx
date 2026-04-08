@@ -31,7 +31,17 @@ export function NavSecondary({ items }: NavSecondaryProps) {
 
             return (
               <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild size="sm" isActive={isActive} tooltip={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  size="sm"
+                  isActive={isActive}
+                  tooltip={item.title}
+                  className={
+                    isActive
+                      ? "border-l-2 border-emerald-500 bg-white/45 shadow-[0_0_0_1px_rgba(16,185,129,0.14),0_4px_12px_rgba(16,185,129,0.1)] backdrop-blur"
+                      : ""
+                  }
+                >
                   <Link href={item.href}>
                     <Icon />
                     <span>{item.title}</span>

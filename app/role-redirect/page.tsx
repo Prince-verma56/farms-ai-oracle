@@ -2,47 +2,51 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-type RoleResponse = {
-  exists: boolean;
-  role: "farmer" | "buyer" | null;
-};
-
 export default function RoleRedirectPage() {
   const router = useRouter();
+  const { user, isLoaded, isSignedIn } = useUser();
   const [loading, setLoading] = useState(true);
   const [needsRolePick, setNeedsRolePick] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const convexRole = useQuery(
+    api.users.getRoleByClerkId,
+    isSignedIn && user?.id ? { clerkId: user.id } : "skip"
+  );
+
   useEffect(() => {
-    const resolveRole = async () => {
-      const response = await fetch("/api/me/role", { cache: "no-store" });
-      if (!response.ok) {
-        router.replace("/sign-in");
-        return;
-      }
-      const data = (await response.json()) as RoleResponse;
+    if (!isLoaded) return;
 
-      if (data.role === "farmer") {
-        router.replace("/admin");
-        return;
-      }
-      if (data.role === "buyer") {
-        router.replace("/marketplace");
-        return;
-      }
+    if (!isSignedIn || !user) {
+      router.replace("/sign-in");
+      return;
+    }
 
-      setNeedsRolePick(true);
-      setLoading(false);
-    };
+    const metadataRole = user.publicMetadata?.role;
+    const normalizedMetadataRole =
+      metadataRole === "farmer" || metadataRole === "buyer" ? metadataRole : null;
+    const normalizedConvexRole =
+      convexRole?.role === "farmer" || convexRole?.role === "buyer" ? convexRole.role : null;
+    const role = normalizedMetadataRole ?? normalizedConvexRole;
 
-    resolveRole().catch(() => {
-      setNeedsRolePick(true);
-      setLoading(false);
-    });
-  }, [router]);
+    if (role === "farmer") {
+      router.replace("/hub");
+      return;
+    }
+    if (role === "buyer") {
+      router.replace("/hub");
+      return;
+    }
+
+    setNeedsRolePick(true);
+    setLoading(false);
+  }, [router, isLoaded, isSignedIn, user, convexRole]);
 
   const setRole = async (role: "farmer" | "buyer") => {
     setSaving(true);
@@ -53,7 +57,7 @@ export default function RoleRedirectPage() {
         body: JSON.stringify({ role }),
       });
       if (!response.ok) throw new Error("Failed to set role.");
-      router.replace(role === "farmer" ? "/admin" : "/marketplace");
+      router.replace("/hub");
     } finally {
       setSaving(false);
     }

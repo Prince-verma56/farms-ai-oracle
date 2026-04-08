@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, Plus } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { navConfig } from "@/config/nav.config";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,10 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isSignedIn } = useUser();
-  const [role, setRole] = useState<"farmer" | "buyer">(
-    pathname.startsWith("/marketplace") ? "buyer" : "farmer"
-  );
+  const [role, setRole] = useState<"farmer" | "buyer">("farmer");
   const [switchingRole, setSwitchingRole] = useState(false);
   const [targetRole, setTargetRole] = useState<"farmer" | "buyer">("farmer");
+  const toggleRole = useMutation(api.users.toggleRole);
 
   const convexUser = useQuery(
     api.users.getRoleByClerkId,
@@ -46,8 +45,12 @@ export function AppSidebar() {
   );
 
   useEffect(() => {
+    if (convexUser?.role === "farmer" || convexUser?.role === "buyer") {
+      setRole(convexUser.role);
+      return;
+    }
     setRole(pathname.startsWith("/marketplace") ? "buyer" : "farmer");
-  }, [pathname]);
+  }, [pathname, convexUser]);
 
   const isFarmer = role === "farmer";
   const roleLabel = isFarmer ? "Farmer" : "Buyer";
@@ -91,21 +94,25 @@ export function AppSidebar() {
 
 
   const switchRole = async (nextRole: "farmer" | "buyer") => {
-    if (nextRole === role || switchingRole) return;
+    if (!user?.id || nextRole === role || switchingRole) return;
     setTargetRole(nextRole);
     setSwitchingRole(true);
     try {
-      const response = await fetch("/api/me/role", {
+      const result = await toggleRole({
+        clerkId: user.id,
+        targetRole: nextRole,
+      });
+      if (!result.success) throw new Error(result.error || "Role update failed");
+
+      // Sync Clerk publicMetadata for proxy/session consistency.
+      await fetch("/api/me/role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: nextRole }),
       });
-      if (!response.ok) throw new Error("Role update failed");
+
       setRole(nextRole);
-      const target = nextRole === "farmer" ? "/admin" : "/marketplace";
-      if (!pathname.startsWith(target)) {
-        router.push(target);
-      }
+      router.push("/hub");
       router.refresh();
     } finally {
       setSwitchingRole(false);

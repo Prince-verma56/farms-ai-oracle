@@ -111,7 +111,7 @@ export default function BuyerOrdersPage() {
       <ClientAnimationWrapper>
         <div className="space-y-10">
           {orders.map((order: any, index: number) => (
-            <Link href={`/marketplace/track?orderId=${order._id}`} key={order._id}>
+            <Link href="/hub" key={order._id}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

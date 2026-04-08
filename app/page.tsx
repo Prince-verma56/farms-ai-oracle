@@ -41,8 +41,7 @@ export default function HomePage() {
       });
       if (!response.ok) throw new Error("Role update failed");
       
-      const target = role === "farmer" ? "/admin" : "/marketplace";
-      router.push(target);
+      router.push("/hub");
       router.refresh();
     } catch (e) {
       console.error(e);

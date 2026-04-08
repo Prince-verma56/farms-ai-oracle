@@ -19,14 +19,17 @@ export const FARMER_ITEMS: NavItemConfig[] = [
   { title: "Dashboard", href: "/admin", icon: "LayoutDashboard" },
   { title: "My Inventory", href: "/admin/inventory", icon: "Leaf" },
   { title: "Sales Tracking", href: "/admin/orders", icon: "ListOrdered" },
+  { title: "Logistics", href: "/admin/logistics", icon: "Route" },
   { title: "AI Oracle", href: "/admin/ai-oracle", icon: "Sparkles" },
   { title: "Deep Market Trends", href: "/admin/analytics", icon: "Activity" },
+  { title: "Local Map", href: "/hub", icon: "MapPinned" },
 ];
 
 export const BUYER_ITEMS: NavItemConfig[] = [
   { title: "Discovery Feed", href: "/marketplace", icon: "LayoutDashboard" },
   { title: "Purchase History", href: "/marketplace/orders", icon: "ListOrdered" },
-  { title: "Live Delivery Status", href: "/marketplace/track", icon: "Truck" },
+  { title: "Live Delivery Status", href: "/hub", icon: "Truck" },
+  { title: "Local Map", href: "/hub", icon: "MapPinned" },
 ];
 
 export const navConfig: NavConfig = {
