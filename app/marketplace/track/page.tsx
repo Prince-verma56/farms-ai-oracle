@@ -147,7 +147,13 @@ export default function TrackShipmentsPage() {
                   <CardDescription className="font-medium text-emerald-600 flex flex-col gap-1">
                     <div className="flex items-center gap-2">
                       <MapPin className="size-3" />
-                      {order.location} → <span className="text-zinc-500">{order.deliveryAddress || "Destination Address Pending"}</span>
+                      {order.location} → <span className="text-zinc-500">
+                      {order.deliveryAddress 
+                        ? (typeof order.deliveryAddress === 'object' 
+                            ? [order.deliveryAddress.street, order.deliveryAddress.city, order.deliveryAddress.state, order.deliveryAddress.pincode].filter(Boolean).join(", ")
+                            : order.deliveryAddress)
+                        : "Destination Address Pending"}
+                      </span>
                     </div>
                   </CardDescription>
                 </div>

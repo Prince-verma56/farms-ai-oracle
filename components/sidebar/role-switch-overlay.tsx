@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { createPortal } from "react-dom";
 
 interface RoleSwitchOverlayProps {
   isSwitching: boolean;
@@ -11,20 +12,22 @@ interface RoleSwitchOverlayProps {
 export function RoleSwitchOverlay({ isSwitching, targetRole }: RoleSwitchOverlayProps) {
   const roleLabel = targetRole === "farmer" ? "Farmer Workspace" : "Buyer Marketplace";
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
-      {isSwitching && (
+      {isSwitching ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-background/80 backdrop-blur-3xl"
+          className="fixed inset-0 z-[100000] flex items-center justify-center bg-background/80 backdrop-blur-2xl"
         >
-          <motion.div 
+          <motion.div
             layout
-            initial={{ scale: 0.9, y: 20 }}
+            initial={{ scale: 0.95, y: 10 }}
             animate={{ scale: 1, y: 0 }}
-            className="flex flex-col items-center space-y-8 text-center p-12 rounded-[3.5rem] bg-white/10 border border-white/20 shadow-2xl"
+            className="mx-4 flex w-full max-w-lg flex-col items-center space-y-8 rounded-[2rem] border border-white/20 bg-white/10 p-10 text-center shadow-2xl"
           >
             <div className="relative">
               <motion.div
@@ -33,12 +36,12 @@ export function RoleSwitchOverlay({ isSwitching, targetRole }: RoleSwitchOverlay
                 className="size-20 rounded-full border-t-2 border-primary"
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Loader2 className="size-8 text-primary animate-pulse" />
+                <Loader2 className="size-8 animate-pulse text-primary" />
               </div>
             </div>
-            
+
             <div className="space-y-2">
-              <motion.h2 
+              <motion.h2
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
@@ -46,36 +49,37 @@ export function RoleSwitchOverlay({ isSwitching, targetRole }: RoleSwitchOverlay
               >
                 Switching to {roleLabel}
               </motion.h2>
-              <motion.p 
-                 initial={{ opacity: 0 }}
-                 animate={{ opacity: 1 }}
-                 transition={{ delay: 0.3 }}
-                 className="text-muted-foreground font-medium"
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="font-medium text-muted-foreground"
               >
                 Syncing your permissions and personalizing your dashboard...
               </motion.p>
             </div>
 
             <div className="flex gap-1">
-               {[1, 2, 3].map((i) => (
-                 <motion.div
-                   key={i}
-                   animate={{ 
-                     opacity: [0.2, 1, 0.2],
-                     scale: [1, 1.2, 1]
-                   }}
-                   transition={{ 
-                     duration: 1, 
-                     repeat: Infinity, 
-                     delay: i * 0.2 
-                   }}
-                   className="size-1.5 rounded-full bg-primary"
-                 />
-               ))}
+              {[1, 2, 3].map((i) => (
+                <motion.div
+                  key={i}
+                  animate={{
+                    opacity: [0.2, 1, 0.2],
+                    scale: [1, 1.2, 1],
+                  }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    delay: i * 0.2,
+                  }}
+                  className="size-1.5 rounded-full bg-primary"
+                />
+              ))}
             </div>
           </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
+      ) : null}
+    </AnimatePresence>,
+    document.body
   );
 }

@@ -1,6 +1,7 @@
 "use server";
 
-import { sendOrderConfirmation, sendFarmerAlert } from "@/lib/email-service";
+import { getCropImage } from "@/lib/asset-mapping";
+import { sendBuyerReceiptEmail, sendFarmerSaleAlert } from "@/lib/mails/mails";
 
 export async function processOrderCommunication({
   buyerEmail,
@@ -8,7 +9,15 @@ export async function processOrderCommunication({
   farmerEmail,
   farmerName,
   cropName,
-  amount
+  amount,
+  orderId,
+  paymentId,
+  gatewayOrderId,
+  quantity,
+  unitPricePerKg,
+  sourceLocation,
+  deliveryAddress,
+  productImageUrl,
 }: {
   buyerEmail: string;
   buyerName: string;
@@ -16,24 +25,50 @@ export async function processOrderCommunication({
   farmerName: string;
   cropName: string;
   amount: number;
+  orderId: string;
+  paymentId: string;
+  gatewayOrderId: string;
+  quantity: string;
+  unitPricePerKg: number;
+  sourceLocation: string;
+  deliveryAddress: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+  productImageUrl?: string;
 }) {
   try {
-    // 1. Send confirmation to Buyer
-    await sendOrderConfirmation({
-      to: buyerEmail,
-      subject: `[FarmDirect] Acquisition Confirmed: ${cropName}`,
+    const invoiceDate = new Date().toISOString();
+    const resolvedProductImage = productImageUrl || getCropImage(cropName);
+
+    await sendBuyerReceiptEmail({
       buyerName,
+      buyerEmail,
+      crop: cropName,
+      amount,
+      quantity,
+      unitPricePerKg,
+      orderId,
+      paymentId,
+      gatewayOrderId,
       farmerName,
-      orderAmount: amount,
-      cropName
+      farmerEmail,
+      sourceLocation,
+      deliveryAddress,
+      productImageUrl: resolvedProductImage,
+      invoiceDateIso: invoiceDate,
     });
 
-    // 2. Alert Farmer about the new acquisition
-    await sendFarmerAlert({
-      to: farmerEmail,
+    await sendFarmerSaleAlert({
+      farmerEmail,
       buyerName,
-      cropName,
-      amount
+      farmerName,
+      crop: cropName,
+      amount,
+      orderId,
+      sourceLocation,
     });
 
     return { success: true };

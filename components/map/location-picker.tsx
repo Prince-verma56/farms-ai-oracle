@@ -1,7 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import React, { useState } from "react";
+import {
+  MapContainer as RLMapContainer,
+  TileLayer as RLTileLayer,
+  Marker as RLMarker,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -12,6 +17,10 @@ const markerIcon = L.icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });
+
+const MapContainer = RLMapContainer as any;
+const TileLayer = RLTileLayer as any;
+const Marker = RLMarker as any;
 
 interface LocationPickerProps {
   onLocationSelect: (lat: number, lng: number) => void;

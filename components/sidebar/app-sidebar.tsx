@@ -34,7 +34,9 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isSignedIn } = useUser();
-  const [role, setRole] = useState<"farmer" | "buyer">("farmer");
+  const [role, setRole] = useState<"farmer" | "buyer">(
+    pathname.startsWith("/marketplace") ? "buyer" : "farmer"
+  );
   const [switchingRole, setSwitchingRole] = useState(false);
   const [targetRole, setTargetRole] = useState<"farmer" | "buyer">("farmer");
 
@@ -44,10 +46,8 @@ export function AppSidebar() {
   );
 
   useEffect(() => {
-    if (convexUser?.role === "farmer" || convexUser?.role === "buyer") {
-      setRole(convexUser.role);
-    }
-  }, [convexUser]);
+    setRole(pathname.startsWith("/marketplace") ? "buyer" : "farmer");
+  }, [pathname]);
 
   const isFarmer = role === "farmer";
   const roleLabel = isFarmer ? "Farmer" : "Buyer";

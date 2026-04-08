@@ -16,7 +16,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { ClientAnimationWrapper } from "@/components/ui/preloader/ClientAnimationWrapper";
 import { DashboardSkeleton } from "@/components/sidebar/dashboard-skeleton";
 import { SectionCards } from "@/components/sidebar/section-cards";
-import { ProductGrid, type MarketplaceProduct } from "@/components/marketplace/product-grid";
+import { ProductGrid } from "@/components/marketplace/product-grid";
+import { type MarketplaceProduct } from "@/components/marketplace/types";
 import { ANCHOR_DATE_ISO } from "@/lib/time-anchor";
 
 type MarketplacePayload = {

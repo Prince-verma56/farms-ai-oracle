@@ -28,6 +28,7 @@ import { RazorpayPayButton } from "@/components/modules/payments/razorpay-pay-bu
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { processOrderCommunication } from "@/app/actions/order-communication";
+import { getCropImage } from "@/lib/asset-mapping";
 
 const LocationPicker = dynamic(() => import("@/components/map/location-picker"), {
   ssr: false,
@@ -68,26 +69,33 @@ export function CheckoutModal({ product, children }: { product: MarketplaceProdu
     try {
       if (!user?.id) throw new Error("Unauthenticated check");
 
-      await createOrder({
+      const orderId = await createOrder({
         clerkId: user.id,
         listingId: product.id as any,
         totalAmount: product.buyerPricePerKg * 100,
-        paymentId: payload.razorpay_payment_id || `pay_${Math.random().toString(36).substring(7)}`,
-        razorpayOrderId: payload.razorpay_order_id || `order_${Math.random().toString(36).substring(7)}`,
+        paymentId: payload.paymentId || `pay_${Math.random().toString(36).substring(7)}`, 
+        razorpayOrderId: payload.gatewayOrderId || `order_${Math.random().toString(36).substring(7)}`, 
         quantity: "100 kg", 
         deliveryAddress: address,
         latitude: coords.lat,
         longitude: coords.lng,
       });
 
-      // Trigger asynchronous order notifications (emails/alerts)
-      processOrderCommunication({
+      await processOrderCommunication({
         buyerEmail: user?.primaryEmailAddress?.emailAddress || "buyer@example.com",
         buyerName: user?.fullName || "Buyer",
-        farmerEmail: "farmer@farmdirect.ai", // In production, fetch from farmer profile
+        farmerEmail: "farmer@farmdirect.ai",
         farmerName: product.location.split(',')[0], 
         cropName: product.crop,
-        amount: product.buyerPricePerKg * 100
+        amount: product.buyerPricePerKg * 100,
+        orderId: String(orderId),
+        paymentId: payload.paymentId || "-",
+        gatewayOrderId: payload.gatewayOrderId || "-",
+        quantity: "100 kg",
+        unitPricePerKg: product.buyerPricePerKg,
+        sourceLocation: product.location,
+        deliveryAddress: address,
+        productImageUrl: getCropImage(product.crop),
       });
 
       setSuccess(true);
@@ -283,3 +291,5 @@ export function CheckoutModal({ product, children }: { product: MarketplaceProdu
     </Dialog>
   );
 }
+
+

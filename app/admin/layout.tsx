@@ -2,7 +2,6 @@ import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { RoleGate } from "@/components/auth/role-gate";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ResizableLayout } from "@/components/sidebar/resizable-layout";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
